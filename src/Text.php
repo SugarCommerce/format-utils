@@ -81,15 +81,26 @@ final readonly class Text {
 	/**
 	 * Up to two initials.
 	 *
-	 * "Trance Essentials Vol 1" gives `TE`; "Dave" gives `D`.
+	 * Which two depends on what the text is, and the two cases disagree:
+	 *
+	 *   "Dave Michael Sherlock"   first and last -> DS   (a person)
+	 *   "Trance Essentials Vol 1" first two     -> TE   (a title)
+	 *
+	 * First-and-last is right for a name, where the surname identifies
+	 * the person. First-two is right for a title, where the trailing word
+	 * is usually a volume or edition number — first-and-last would render
+	 * that example as `T1`.
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param string $text Source text.
+	 * @param string $text       Source text.
+	 * @param bool   $from_start Take the first two words rather than the
+	 *                           first and last. Pass it by name:
+	 *                           `Text::initials( $title, from_start: true )`.
 	 *
 	 * @return string Uppercase; `?` when there is nothing usable.
 	 */
-	public static function initials( string $text ): string {
+	public static function initials( string $text, bool $from_start = false ): string {
 		$parts = preg_split( '/[\s\-_]+/u', trim( $text ), -1, PREG_SPLIT_NO_EMPTY ) ?: array();
 
 		if ( array() === $parts ) {
@@ -99,7 +110,8 @@ final readonly class Text {
 		$initials = mb_strtoupper( mb_substr( $parts[0], 0, 1 ) );
 
 		if ( count( $parts ) > 1 ) {
-			$initials .= mb_strtoupper( mb_substr( $parts[ count( $parts ) - 1 ], 0, 1 ) );
+			$second    = $from_start ? $parts[1] : $parts[ count( $parts ) - 1 ];
+			$initials .= mb_strtoupper( mb_substr( $second, 0, 1 ) );
 		}
 
 		return $initials;

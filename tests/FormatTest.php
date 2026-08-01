@@ -249,13 +249,37 @@ final class FormatTest extends TestCase {
 	}
 
 	/**
+	 * The two cases genuinely disagree: a surname identifies a person, but
+	 * the trailing word of a title is usually a volume number.
+	 */
+	public function test_titles_take_their_initials_from_the_start(): void {
+		$this->assertSame( 'T1', Text::initials( 'Trance Essentials Vol 1' ) );
+		$this->assertSame( 'TE', Text::initials( 'Trance Essentials Vol 1', from_start: true ) );
+
+		$this->assertSame( 'DS', Text::initials( 'Dave Michael Sherlock' ) );
+		$this->assertSame( 'DM', Text::initials( 'Dave Michael Sherlock', from_start: true ) );
+	}
+
+	public function test_a_single_word_is_unaffected_by_the_mode(): void {
+		$this->assertSame( 'D', Text::initials( 'Dave' ) );
+		$this->assertSame( 'D', Text::initials( 'Dave', from_start: true ) );
+	}
+
+	public function test_an_avatar_carries_the_initials_mode(): void {
+		$title = 'Trance Essentials Vol 1';
+
+		$this->assertStringContainsString( 'T1', rawurldecode( Avatar::svg( $title ) ) );
+		$this->assertStringContainsString( 'TE', rawurldecode( Avatar::svg( $title, from_start: true ) ) );
+	}
+
+	/**
 	 * @return array<string, array{0: string, 1: string}>
 	 */
 	public static function initial_cases(): array {
 		return array(
 			'two words'  => array( 'Dave Sherlock', 'DS' ),
 			'one word'   => array( 'Dave', 'D' ),
-			'three words' => array( 'Trance Essentials Vol', 'TV' ),
+			'three words' => array( 'Trance Essentials Vol', 'TV' ), // first and last
 			'hyphenated' => array( 'Jean-Luc', 'JL' ),
 			'lowercase'  => array( 'dave sherlock', 'DS' ),
 			'empty'      => array( '', '?' ),

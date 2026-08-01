@@ -39,15 +39,19 @@ final readonly class Avatar {
 	 * @param int    $size       Width and height in pixels.
 	 * @param int    $saturation Colour saturation, 0-100.
 	 * @param int    $lightness  Colour lightness, 0-100.
+	 * @param bool   $from_start Derive initials from the first two words
+	 *                           rather than the first and last — right
+	 *                           for a product title, wrong for a person.
+	 *                           See {@see Text::initials()}.
 	 *
 	 * @return string A `data:image/svg+xml` URI.
 	 */
-	public static function svg( string $name, int $size = 200, int $saturation = 55, int $lightness = 42 ): string {
+	public static function svg( string $name, int $size = 200, int $saturation = 55, int $lightness = 42, bool $from_start = false ): string {
 		$size       = max( 16, min( 1024, $size ) );
 		$saturation = max( 0, min( 100, $saturation ) );
 		$lightness  = max( 0, min( 100, $lightness ) );
 
-		$initials = Text::initials( $name );
+		$initials = Text::initials( $name, $from_start );
 		$hue      = self::hue( $name );
 
 		// The gradient's second stop is offset around the wheel and

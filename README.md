@@ -70,7 +70,8 @@ use SugarMill\Format\Text;
 
 Text::truncate( $title, 40 );              // word-safe, ellipsis inside the budget
 Text::excerpt( $body, 160 );               // collapses newlines first
-Text::initials( 'Dave Sherlock' );         // 'DS'
+Text::initials( 'Dave Sherlock' );         // 'DS' — first and last, for a name
+Text::initials( 'Trance Vol 1', from_start: true ); // 'TV' — first two, for a title
 Text::list( ['a', 'b', 'c'] );             // 'a, b and c'
 Text::list( $tags, limit: 2 );             // 'design, audio and 4 more'
 Text::plural( 3, 'entry' );                // '3 entries'
