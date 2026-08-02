@@ -2,7 +2,7 @@
 /**
  * Numbers for display.
  *
- * @package   SugarMill\Format
+ * @package   Sugar\Format
  * @copyright Copyright (c) 2026, ArrayPress Limited
  * @license   GPL-2.0-or-later
  * @since     1.0.0
@@ -10,12 +10,12 @@
 
 declare( strict_types=1 );
 
-namespace SugarMill\Format;
+namespace Sugar\Format;
 
 /**
  * Class Numbers
  *
- * For money, use `sugarmill/currency` — money is integer minor units and
+ * For money, use `sugarcommerce/currency` — money is integer minor units and
  * needs its own rules. This is for counts and rates.
  *
  * @since 1.0.0

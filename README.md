@@ -24,13 +24,13 @@ PHP 8.5+
 ## Installation
 
 ```bash
-composer require sugarmill/format-utils
+composer require sugarcommerce/format-utils
 ```
 
 ## Bytes
 
 ```php
-use SugarMill\Format\Bytes;
+use Sugar\Format\Bytes;
 
 Bytes::format( 1572864 );                  // '1.5 MB'
 Bytes::format( 104857600 );                // '100 MB'  — not '100.0 MB'
@@ -52,7 +52,7 @@ Bytes::format( 500 * (1000 ** 3) );                 // '465.7 GB'
 ## Durations
 
 ```php
-use SugarMill\Format\Duration;
+use Sugar\Format\Duration;
 
 Duration::clock( 243 );      // '4:03'      — media, aligned
 Duration::clock( 3723 );     // '1:02:03'
@@ -66,7 +66,7 @@ Duration::parse( '2h 5m' );  // 7500
 ## Text
 
 ```php
-use SugarMill\Format\Text;
+use Sugar\Format\Text;
 
 Text::truncate( $title, 40 );              // word-safe, ellipsis inside the budget
 Text::excerpt( $body, 160 );               // collapses newlines first
@@ -89,7 +89,7 @@ Truncation counts characters, not bytes, so a limit of 20 means twenty visible c
 ## Numbers
 
 ```php
-use SugarMill\Format\Numbers;
+use Sugar\Format\Numbers;
 
 Numbers::compact( 1200 );              // '1.2k'
 Numbers::compact( 3400000 );           // '3.4M'
@@ -101,12 +101,12 @@ Numbers::change( 120, 100 );           // '+20%'
 Numbers::change( 50, 0 );              // 'new'
 ```
 
-For money use [`sugarmill/currency`](https://github.com/sugarmill/currency) — money is integer minor units and needs its own rules.
+For money use [`sugarcommerce/currency`](https://github.com/sugarcommerce/currency) — money is integer minor units and needs its own rules.
 
 ## Avatars
 
 ```php
-use SugarMill\Format\Avatar;
+use Sugar\Format\Avatar;
 
 Avatar::svg( 'Dave Sherlock' );        // data:image/svg+xml;utf8,… → straight into <img src>
 Avatar::hue( 'Dave Sherlock' );        // 214 — tint something else to match
@@ -120,7 +120,7 @@ No network request, no upload, nothing to store. The initials are XML-escaped, b
 ## File types
 
 ```php
-use SugarMill\Format\FileType;
+use Sugar\Format\FileType;
 
 FileType::kind( 'photo.jpg' );                       // 'image'
 FileType::kind( 'https://x.com/a/photo.jpg?v=2' );   // 'image'

@@ -2,7 +2,7 @@
 /**
  * Display formatting.
  *
- * @package   SugarMill\Format
+ * @package   Sugar\Format
  * @copyright Copyright (c) 2026, ArrayPress Limited
  * @license   GPL-2.0-or-later
  * @since     1.0.0
@@ -10,17 +10,17 @@
 
 declare( strict_types=1 );
 
-namespace SugarMill\Format\Tests;
+namespace Sugar\Format\Tests;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use SugarMill\Format\Avatar;
-use SugarMill\Format\Bytes;
-use SugarMill\Format\Duration;
-use SugarMill\Format\FileType;
-use SugarMill\Format\Numbers;
-use SugarMill\Format\Text;
+use Sugar\Format\Avatar;
+use Sugar\Format\Bytes;
+use Sugar\Format\Duration;
+use Sugar\Format\FileType;
+use Sugar\Format\Numbers;
+use Sugar\Format\Text;
 
 #[CoversClass( Bytes::class )]
 #[CoversClass( Duration::class )]
