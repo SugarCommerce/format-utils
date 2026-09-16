@@ -30,7 +30,7 @@ composer require sugarcommerce/format-utils
 ## Bytes
 
 ```php
-use Sugar\Format\Bytes;
+use SugarCommerce\Format\Bytes;
 
 Bytes::format( 1572864 );                  // '1.5 MB'
 Bytes::format( 104857600 );                // '100 MB'  — not '100.0 MB'
@@ -52,7 +52,7 @@ Bytes::format( 500 * (1000 ** 3) );                 // '465.7 GB'
 ## Durations
 
 ```php
-use Sugar\Format\Duration;
+use SugarCommerce\Format\Duration;
 
 Duration::clock( 243 );      // '4:03'      — media, aligned
 Duration::clock( 3723 );     // '1:02:03'
@@ -66,7 +66,7 @@ Duration::parse( '2h 5m' );  // 7500
 ## Text
 
 ```php
-use Sugar\Format\Text;
+use SugarCommerce\Format\Text;
 
 Text::truncate( $title, 40 );              // word-safe, ellipsis inside the budget
 Text::excerpt( $body, 160 );               // collapses newlines first
@@ -89,7 +89,7 @@ Truncation counts characters, not bytes, so a limit of 20 means twenty visible c
 ## Numbers
 
 ```php
-use Sugar\Format\Numbers;
+use SugarCommerce\Format\Numbers;
 
 Numbers::compact( 1200 );              // '1.2k'
 Numbers::compact( 3400000 );           // '3.4M'
@@ -106,7 +106,7 @@ For money use [`sugarcommerce/currency`](https://github.com/sugarcommerce/curren
 ## Avatars
 
 ```php
-use Sugar\Format\Avatar;
+use SugarCommerce\Format\Avatar;
 
 Avatar::svg( 'Dave Sherlock' );        // data:image/svg+xml;utf8,… → straight into <img src>
 Avatar::hue( 'Dave Sherlock' );        // 214 — tint something else to match
@@ -120,7 +120,7 @@ No network request, no upload, nothing to store. The initials are XML-escaped, b
 ## File types
 
 ```php
-use Sugar\Format\FileType;
+use SugarCommerce\Format\FileType;
 
 FileType::kind( 'photo.jpg' );                       // 'image'
 FileType::kind( 'https://x.com/a/photo.jpg?v=2' );   // 'image'

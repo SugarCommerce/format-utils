@@ -2,7 +2,7 @@
 /**
  * Text for display.
  *
- * @package   Sugar\Format
+ * @package   SugarCommerce\Format
  * @copyright Copyright (c) 2026, ArrayPress Limited
  * @license   GPL-2.0-or-later
  * @since     1.0.0
@@ -10,7 +10,7 @@
 
 declare( strict_types=1 );
 
-namespace Sugar\Format;
+namespace SugarCommerce\Format;
 
 /**
  * Class Text
