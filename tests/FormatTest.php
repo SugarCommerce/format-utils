@@ -17,12 +17,14 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use SugarCommerce\Format\Avatar;
 use SugarCommerce\Format\Bytes;
+use SugarCommerce\Format\Csv;
 use SugarCommerce\Format\Duration;
 use SugarCommerce\Format\FileType;
 use SugarCommerce\Format\Numbers;
 use SugarCommerce\Format\Text;
 
 #[CoversClass( Bytes::class )]
+#[CoversClass( Csv::class )]
 #[CoversClass( Duration::class )]
 #[CoversClass( Text::class )]
 #[CoversClass( Numbers::class )]
@@ -521,5 +523,48 @@ final class FormatTest extends TestCase {
 			'Future Dance.zip',
 			FileType::pretty( 'Presets/Acme Samples - Future Dance.zip', strip: 'Acme Samples' )
 		);
+	}
+
+	/* ─── Csv ─────────────────────────────────────────────────────── */
+
+	public function test_csv_has_a_header_and_rows(): void {
+		$csv = Csv::build( array( 'email', 'orders' ), array( array( 'a@example.com', 2 ) ), bom: false );
+
+		$this->assertSame( "email,orders\na@example.com,2\n", $csv );
+	}
+
+	public function test_csv_starts_with_a_bom_for_excel(): void {
+		$this->assertStringStartsWith( "\xEF\xBB\xBF", Csv::build( array( 'a' ), array() ) );
+	}
+
+	public function test_csv_quotes_what_needs_quoting(): void {
+		$csv = Csv::build( array( 'name' ), array( array( 'Smith, "Jo"' ) ), bom: false );
+
+		$this->assertSame( "name\n\"Smith, \"\"Jo\"\"\"\n", $csv );
+	}
+
+	/**
+	 * A customer named like a formula must open as text.
+	 */
+	#[DataProvider( 'formulae' )]
+	public function test_csv_defuses_formulae( string $value ): void {
+		$this->assertSame( "'" . $value, Csv::cell( $value ) );
+	}
+
+	public static function formulae(): array {
+		return array(
+			'equals' => array( '=HYPERLINK("https://evil.test","x")' ),
+			'plus'   => array( '+1+1' ),
+			'minus'  => array( '-2+3' ),
+			'at'     => array( '@SUM(A1)' ),
+			'tab'    => array( "\t=1" ),
+		);
+	}
+
+	public function test_csv_leaves_numbers_as_numbers(): void {
+		$this->assertSame( '-250', Csv::cell( -250 ) );
+		$this->assertSame( '1.5', Csv::cell( 1.5 ) );
+		$this->assertSame( 'yes', Csv::cell( true ) );
+		$this->assertSame( '', Csv::cell( null ) );
 	}
 }
