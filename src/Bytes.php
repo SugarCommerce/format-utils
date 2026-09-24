@@ -32,17 +32,17 @@ final readonly class Bytes {
 	/**
 	 * Binary unit names, ascending.
 	 */
-	private const BINARY = array( 'B', 'KB', 'MB', 'GB', 'TB', 'PB' );
+	private const array BINARY = array( 'B', 'KB', 'MB', 'GB', 'TB', 'PB' );
 
 	/**
 	 * Decimal unit names, ascending.
 	 */
-	private const DECIMAL = array( 'B', 'kB', 'MB', 'GB', 'TB', 'PB' );
+	private const array DECIMAL = array( 'B', 'kB', 'MB', 'GB', 'TB', 'PB' );
 
 	/**
 	 * Multipliers accepted when parsing, keyed by lowercase unit.
 	 */
-	private const MULTIPLIERS = array(
+	private const array MULTIPLIERS = array(
 		'b' => 1,
 		'k' => 1024, 'kb' => 1024, 'kib' => 1024,
 		'm' => 1048576, 'mb' => 1048576, 'mib' => 1048576,

@@ -36,7 +36,7 @@ final class Csv {
 	 * Tab and carriage return too: some importers strip leading whitespace
 	 * and then see the `=` behind it.
 	 */
-	private const TRIGGERS = array( '=', '+', '-', '@', "\t", "\r" );
+	private const array TRIGGERS = array( '=', '+', '-', '@', "\t", "\r" );
 
 	/**
 	 * A whole file: header row, then the rows.

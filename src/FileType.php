@@ -33,7 +33,7 @@ final readonly class FileType {
 	/**
 	 * Extensions per kind.
 	 */
-	private const KINDS = array(
+	private const array KINDS = array(
 		'image'    => array( 'jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'svg', 'bmp', 'ico', 'heic', 'tiff', 'tif' ),
 		'video'    => array( 'mp4', 'mov', 'webm', 'mkv', 'avi', 'm4v', 'mpg', 'mpeg', 'wmv', 'flv' ),
 		'audio'    => array( 'mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a', 'aiff', 'aif', 'wma', 'opus' ),
@@ -48,7 +48,7 @@ final readonly class FileType {
 	/**
 	 * Human labels per kind.
 	 */
-	private const LABELS = array(
+	private const array LABELS = array(
 		'image'    => 'Image',
 		'video'    => 'Video',
 		'audio'    => 'Audio',
