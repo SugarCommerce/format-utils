@@ -15,7 +15,8 @@ None of it is hard. It is just never worth anybody's afternoon, so it gets done 
 - ✂️ **Truncation that counts characters** — never splits a word, never splits a codepoint, and includes the ellipsis in the budget.
 - 🔢 **Compact numbers** — `1.2k`, `3.4M`, plus percentages and period-over-period change.
 - 🎨 **Deterministic avatars** — an SVG data URI from a name; the same name is always the same colour.
-- 📁 **File kinds** — coarse buckets for grouping and filtering, from a filename or a MIME type.
+- 📁 **File kinds** — coarse buckets for grouping and filtering, from a filename or a MIME type; the content type for a name, and whether every browser shows it in place.
+- 🔎 **Forgiving search** — every word typed, in any order, one typo forgiven (a swap of neighbours counts as one), accents ignored.
 
 ## Requirements
 
@@ -48,6 +49,13 @@ Bytes::format( 500 * (1000 ** 3) );                 // '465.7 GB'
 ```
 
 `parse()` reads `KB` and `KiB` alike as 1024, because people writing `KB` in a config file mean the binary unit.
+
+In another language, the same size with the language's own separators (needs `ext-intl`; without it, and in English, it is exactly `format()`):
+
+```php
+Bytes::format_localized( 1572864, 'de' );              // '1,5 MB'
+Bytes::format_localized( 1024 * 1000 + 512, 'de' );    // '1.000,5 KB' — grouping too, not a comma swapped for a point
+```
 
 ## Durations
 
@@ -130,13 +138,34 @@ FileType::extension( '/a/b/PHOTO.JPG' );             // 'jpg'
 FileType::kinds();                                   // key => label, for a filter
 FileType::pretty( 'https://x.com/' );                // 'x.com'
 FileType::pretty( 'Presets/Massive Pack.zip' );      // 'Massive Pack.zip'
+FileType::mime( 'Master.wav' );                      // 'audio/wav' — 'application/octet-stream' when unknown
+FileType::inline( 'teaser.mov' );                    // 'video/quicktime'
+FileType::inline( 'session.aiff' );                  // '' — Safari plays it, nobody else does
 ```
+
+`inline()` is the type to give an `<img>`, `<video>`, `<audio>` or PDF viewer, and only for files *every* current browser shows in place: PNG, JPEG, GIF, WebP, AVIF; MP4, WebM, MOV; MP3, WAV, M4A, AAC, Ogg, Opus, FLAC; PDF. Not SVG — a document that can carry script. Not TIFF, HEIC, PSD or AIFF — most browsers show nothing, and a preview offered to half the people who open it is worse than an icon.
 
 Kinds are deliberately coarse — `image`, `video`, `audio`, `document`, `sheet`, `slides`, `archive`, `code`, `font`, `other`. A file list wants six or seven buckets a person can filter by, not the ninety distinct types a MIME database knows about.
 
 > **Never decide whether an upload is safe from its extension.** The extension is chosen by whoever uploaded it. This is presentation only; sniff the contents.
 
 `pretty()` keeps the extension after stripping a prefix, because without it a filename column reads like the title column above it — which is exactly the confusion it was written to fix.
+
+## Search
+
+```php
+use SugarCommerce\Format\Search;
+
+Search::filter( $files, 'licens drive', field: 'filename' );   // rows whose filename has every word
+Search::matches( 'Neon Rain - Master.wav', 'rian mastr' );       // true
+Search::distance( 'midnigth', 'midnight' );                       // 1
+Search::words( 'Midnight Drive — Master.WAV' );                   // [ 'midnight', 'drive', 'master', 'wav' ]
+Search::fold( 'RÉSUMÉ' );                                         // 'resume'
+```
+
+For somebody searching a list of their own things, who remembers roughly what one is called and not how they spelled it: "license" finds "Licence Agreement.pdf", "drive master" finds "Midnight Drive - Master.wav". Every word typed must be in the name, in any order — inside it as typed, or, from four letters, one edit from a word of the name or from the start of one (so "licens" works before the typing is finished). Below four letters nothing is guessed: "way" is not "wav".
+
+The edit distance is optimal string alignment by character, not PHP's `levenshtein()` by byte: an accented letter is one character, and two neighbouring letters the wrong way round — the commonest slip, "midnigth" — is one edit rather than two. `@arraypress/text`'s `matchesAll()` follows the same rules, so a browser-side filter finds what the server does.
 
 ## CSV
 
@@ -157,7 +186,7 @@ composer install
 composer test
 ```
 
-139 tests — both byte conventions and their disagreement, round trips through every parser, multi-byte truncation, the ordinal teens, avatar determinism and escaping, and file kinds from paths, URLs and MIME types.
+199 tests — both byte conventions and their disagreement, localized sizes, round trips through every parser, multi-byte truncation, the ordinal teens, avatar determinism and escaping, file kinds and content types from paths, URLs and MIME types, and search: typos, swaps, accents, word order and the short-word rule.
 
 ## License
 

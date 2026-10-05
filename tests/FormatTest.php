@@ -14,6 +14,7 @@ namespace SugarCommerce\Format\Tests;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use PHPUnit\Framework\TestCase;
 use SugarCommerce\Format\Avatar;
 use SugarCommerce\Format\Bytes;
@@ -59,6 +60,20 @@ final class FormatTest extends TestCase {
 			'terabytes'     => array( 1099511627776, '1 TB' ),
 			'negative'      => array( -2048, '-2 KB' ),
 		);
+	}
+
+	/**
+	 * The same size, written the language's way; English is format() exactly.
+	 */
+	#[RequiresPhpExtension( 'intl' )]
+	public function test_bytes_in_another_language(): void {
+		$this->assertSame( '1,5 MB', Bytes::format_localized( 1572864, 'de' ) );
+		$this->assertSame( '100 MB', Bytes::format_localized( 104857600, 'pt-BR' ) );
+		$this->assertSame( Bytes::format( 1572864 ), Bytes::format_localized( 1572864, 'en-GB' ) );
+		$this->assertSame( '1,5 kB', Bytes::format_localized( 1500, 'de', decimal: true ) );
+		// A thousand and more of a unit: the grouping is the language's too,
+		// not a comma turned into a decimal separator.
+		$this->assertSame( '1.000,5 KB', Bytes::format_localized( 1024 * 1000 + 512, 'de' ) );
 	}
 
 	public function test_decimal_units_differ_from_binary(): void {
@@ -523,6 +538,60 @@ final class FormatTest extends TestCase {
 			'Future Dance.zip',
 			FileType::pretty( 'Presets/Acme Samples - Future Dance.zip', strip: 'Acme Samples' )
 		);
+	}
+
+	/**
+	 * Files people sell that used to read as "other".
+	 */
+	public function test_creative_formats_have_a_kind(): void {
+		foreach ( array( 'Score.mid', 'Score.MIDI', 'Master.alac', 'Loop.oga' ) as $name ) {
+			$this->assertSame( 'audio', FileType::kind( $name ), $name );
+		}
+
+		foreach ( array( 'Artwork.psd', 'Logo.ai', 'Logo.eps' ) as $name ) {
+			$this->assertSame( 'image', FileType::kind( $name ), $name );
+		}
+
+		$this->assertSame( 'archive', FileType::kind( 'release.tgz' ) );
+	}
+
+	#[DataProvider( 'content_types' )]
+	public function test_a_content_type_from_the_name( string $filename, string $mime, string $inline ): void {
+		$this->assertSame( $mime, FileType::mime( $filename ) );
+		$this->assertSame( $inline, FileType::inline( $filename ) );
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: string, 2: string}>
+	 */
+	public static function content_types(): array {
+		return array(
+			'mp3'            => array( 'Midnight Drive.MP3', 'audio/mpeg', 'audio/mpeg' ),
+			'flac plays'     => array( 'a.flac', 'audio/flac', 'audio/flac' ),
+			'opus plays'     => array( 'a.opus', 'audio/ogg', 'audio/ogg' ),
+			// Safari only, so not offered to everybody else.
+			'aiff is safari' => array( 'session.aiff', 'audio/aiff', '' ),
+			'midi is not'    => array( 'score.mid', 'audio/midi', '' ),
+			'png'            => array( 'poster.png', 'image/png', 'image/png' ),
+			// A document that can carry script.
+			'svg is not'     => array( 'logo.svg', 'image/svg+xml', '' ),
+			'heic is not'    => array( 'photo.heic', 'image/heic', '' ),
+			'mov'            => array( 'teaser.mov', 'video/quicktime', 'video/quicktime' ),
+			'm4v'            => array( 'teaser.m4v', 'video/mp4', 'video/mp4' ),
+			'mkv is not'     => array( 'film.mkv', 'video/x-matroska', '' ),
+			'pdf'            => array( 'Licence.pdf', 'application/pdf', 'application/pdf' ),
+			'zip'            => array( 'Stems.zip', 'application/zip', '' ),
+			'unknown'        => array( 'preset.fxp', 'application/octet-stream', '' ),
+			'no extension'   => array( 'mp3', 'application/octet-stream', '' ),
+			'a url'          => array( 'https://x.com/a.mp3?sig=1', 'audio/mpeg', 'audio/mpeg' ),
+		);
+	}
+
+	public function test_everything_inline_has_a_kind_a_browser_shows(): void {
+		foreach ( array( 'a.png', 'a.jpg', 'a.webp', 'a.avif', 'a.gif', 'a.mp4', 'a.webm', 'a.mov', 'a.mp3', 'a.wav', 'a.m4a', 'a.aac', 'a.ogg', 'a.oga', 'a.opus', 'a.flac', 'a.pdf' ) as $name ) {
+			$this->assertNotSame( '', FileType::inline( $name ), $name );
+			$this->assertContains( FileType::kind( $name ), array( 'image', 'video', 'audio', 'document' ), $name );
+		}
 	}
 
 	/* ─── Csv ─────────────────────────────────────────────────────── */

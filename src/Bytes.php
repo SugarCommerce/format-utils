@@ -86,6 +86,43 @@ final readonly class Bytes {
 	}
 
 	/**
+	 * Format a byte count with a language's own digits and separators:
+	 * `1,5 MB` in German, `1.5 MB` in English.
+	 *
+	 * The same rounding and units as format(), so the two never disagree
+	 * about the size, only about how the number is written. English, or no
+	 * intl extension, is exactly format()'s output.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @param int    $bytes   Byte count.
+	 * @param string $locale  A language tag: `de`, `pt-BR`, `fr_FR`.
+	 * @param bool   $decimal Use decimal units (1 kB = 1000 bytes).
+	 *
+	 * @return string
+	 */
+	public static function format_localized( int $bytes, string $locale, bool $decimal = false ): string {
+		$size = self::format( $bytes, $decimal );
+
+		if ( '' === $locale || str_starts_with( strtolower( $locale ), 'en' ) || ! class_exists( \NumberFormatter::class ) ) {
+			return $size;
+		}
+
+		[ $number, $unit ] = explode( ' ', $size, 2 );
+
+		$plain     = str_replace( ',', '', $number );
+		$digits    = str_contains( $plain, '.' ) ? 1 : 0;
+		$formatter = new \NumberFormatter( str_replace( '-', '_', $locale ), \NumberFormatter::DECIMAL );
+
+		$formatter->setAttribute( \NumberFormatter::MIN_FRACTION_DIGITS, $digits );
+		$formatter->setAttribute( \NumberFormatter::MAX_FRACTION_DIGITS, $digits );
+
+		$written = $formatter->format( (float) $plain );
+
+		return false === $written ? $size : $written . ' ' . $unit;
+	}
+
+	/**
 	 * Parse a human-written size back to bytes.
 	 *
 	 * Accepts `2MB`, `2 mb`, `2.5 GiB`, `512K`, `1,024 KB`. Useful for
