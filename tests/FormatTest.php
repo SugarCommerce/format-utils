@@ -260,6 +260,37 @@ final class FormatTest extends TestCase {
 		$this->assertSame( 'One two three', Text::excerpt( "One\n\n  two\t three", 100 ) );
 	}
 
+	public function test_every_line_break_starts_a_paragraph(): void {
+		$this->assertSame( array( 'One', 'Two lines', 'Three' ), Text::paragraphs( "One\r\n\r\n  Two \t lines \nThree\n" ) );
+	}
+
+	public function test_blank_text_has_no_paragraphs(): void {
+		$this->assertSame( array(), Text::paragraphs( " \n\n\t" ) );
+	}
+
+	public function test_paragraphs_are_not_interpreted(): void {
+		$this->assertSame( array( '<b>bold</b> & **not**' ), Text::paragraphs( '<b>bold</b> & **not**' ) );
+	}
+
+	#[DataProvider( 'humanized' )]
+	public function test_humanize( string $key, string $expected ): void {
+		$this->assertSame( $expected, Text::humanize( $key ) );
+	}
+
+	public static function humanized(): array {
+		return array(
+			array( 'genre', 'Genre' ),
+			array( 'sample_rate', 'Sample rate' ),
+			array( 'bit-depth', 'Bit depth' ),
+			array( 'bitDepth', 'Bit depth' ),
+			array( 'BPM', 'BPM' ),
+			array( 'original_BPM', 'Original BPM' ),
+			array( 'key.signature', 'Key signature' ),
+			array( '  __ ', '' ),
+			array( 'énergie_niveau', 'Énergie niveau' ),
+		);
+	}
+
 	#[DataProvider( 'initial_cases' )]
 	public function test_initials( string $input, string $expected ): void {
 		$this->assertSame( $expected, Text::initials( $input ) );

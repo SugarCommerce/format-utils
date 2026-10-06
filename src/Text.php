@@ -79,6 +79,65 @@ final readonly class Text {
 	}
 
 	/**
+	 * Plain text as its paragraphs.
+	 *
+	 * A line break in text somebody typed into a single field — a product
+	 * description, a note — is them starting a new paragraph, so every
+	 * break is one: blank lines in between do not add empty paragraphs,
+	 * and each paragraph is trimmed. Nothing is escaped or interpreted,
+	 * so what comes back is still plain text, to be escaped where it is
+	 * printed.
+	 *
+	 * @since 1.3.0
+	 *
+	 * @param string $text Source text, with any line endings.
+	 *
+	 * @return string[] The paragraphs, in order. Empty for blank text.
+	 */
+	public static function paragraphs( string $text ): array {
+		$lines = preg_split( '/\R/u', $text ) ?: array();
+
+		return array_values( array_filter(
+			array_map( static fn( string $line ): string => trim( (string) preg_replace( '/[ \t]+/u', ' ', $line ) ), $lines ),
+			static fn( string $line ): bool => '' !== $line
+		) );
+	}
+
+	/**
+	 * A machine key as words a person reads: `sample_rate` → `Sample rate`.
+	 *
+	 * For keys somebody chose to name a value — metadata, a settings
+	 * array, a column — shown as that value's label. Underscores, hyphens
+	 * and dots become spaces, camelCase is split, and only the first
+	 * letter is capitalised: sentence case, because `Bit Depth` reads as
+	 * a title and `Bit depth` reads as a label. A word already written in
+	 * capitals (`BPM`, `ISRC`) is kept as written.
+	 *
+	 * @since 1.3.0
+	 *
+	 * @param string $key Source key.
+	 *
+	 * @return string '' for a key with no letters or digits in it.
+	 */
+	public static function humanize( string $key ): string {
+		$spaced = (string) preg_replace( '/(?<=\p{Ll})(?=\p{Lu})/u', ' ', $key );
+		$words  = preg_split( '/[\s_.\-]+/u', trim( $spaced ), -1, PREG_SPLIT_NO_EMPTY ) ?: array();
+
+		$words = array_map(
+			static fn( string $word ): string => mb_strlen( $word ) > 1 && mb_strtoupper( $word ) === $word ? $word : mb_strtolower( $word ),
+			$words
+		);
+
+		if ( array() === $words ) {
+			return '';
+		}
+
+		$words[0] = mb_strtoupper( mb_substr( $words[0], 0, 1 ) ) . mb_substr( $words[0], 1 );
+
+		return implode( ' ', $words );
+	}
+
+	/**
 	 * Up to two initials.
 	 *
 	 * Which two depends on what the text is, and the two cases disagree:

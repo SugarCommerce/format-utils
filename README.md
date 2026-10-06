@@ -86,6 +86,8 @@ Text::plural( 3, 'entry' );                // '3 entries'
 Text::plural( 2, 'person', 'people' );     // '2 people'
 Text::ordinal( 21 );                       // '21st'
 Text::ordinal( 11 );                       // '11th'  — the teens are the trap
+Text::paragraphs( $description );          // ['First line', 'Second line'] — every break is one
+Text::humanize( 'sample_rate' );           // 'Sample rate' — a key as a label; 'BPM' stays 'BPM'
 ```
 
 Truncation counts characters, not bytes, so a limit of 20 means twenty visible characters whether the text is English or Japanese. It only breaks at a word boundary if one is reasonably near the end — otherwise a long unbroken string would collapse to almost nothing.
