@@ -58,7 +58,7 @@ final readonly class Search {
 
 		return array_values( array_filter(
 			$rows,
-			static fn ( array $row ): bool => self::matches( (string) ( $row[ $field ] ?? '' ), $terms )
+			static fn ( array $row ): bool => self::matches( self::text( $row[ $field ] ?? '' ), $terms )
 		) );
 	}
 
@@ -69,6 +69,10 @@ final readonly class Search {
 	 * "Instrumental" — or, from FUZZY_FROM letters, when it is one edit from
 	 * a word of the name or from the start of one, so "licens" finds
 	 * "licence" before the typing is finished.
+	 *
+	 * Linear in the lengths of the name and the query: the one-edit test
+	 * never builds distance()'s table, so a query pasted in at any length
+	 * costs what reading it costs.
 	 *
 	 * @since 1.2.0
 	 *
@@ -189,12 +193,78 @@ final readonly class Search {
 			return false;
 		}
 
+		$letters = mb_str_split( $term );
+
 		foreach ( $words as $word ) {
-			if ( self::distance( $term, $word ) <= 1 || self::distance( $term, mb_substr( $word, 0, $length ) ) <= 1 ) {
+			$whole = mb_str_split( $word );
+
+			if ( self::one_edit( $letters, $whole ) || self::one_edit( $letters, array_slice( $whole, 0, $length ) ) ) {
 				return true;
 			}
 		}
 
 		return false;
+	}
+
+	/**
+	 * Whether two words are at most one edit apart, as distance() counts
+	 * edits: equal, or one letter changed, added, dropped, or swapped with
+	 * its neighbour.
+	 *
+	 * The same answer as `distance( $a, $b ) <= 1`, in one pass rather than
+	 * a table the size of both words multiplied together.
+	 *
+	 * @param list<string> $a One word's characters.
+	 * @param list<string> $b The other's.
+	 *
+	 * @return bool
+	 */
+	private static function one_edit( array $a, array $b ): bool {
+		$m = count( $a );
+		$n = count( $b );
+
+		if ( abs( $m - $n ) > 1 ) {
+			return false;
+		}
+
+		// The longer first, so only a deletion from it need be tried.
+		if ( $n > $m ) {
+			[ $a, $b, $m, $n ] = array( $b, $a, $n, $m );
+		}
+
+		$i = 0;
+
+		while ( $i < $n && $a[ $i ] === $b[ $i ] ) {
+			++$i;
+		}
+
+		if ( $i === $n ) {
+			return true;
+		}
+
+		if ( $m > $n ) {
+			return array_slice( $a, $i + 1 ) === array_slice( $b, $i );
+		}
+
+		if ( array_slice( $a, $i + 1 ) === array_slice( $b, $i + 1 ) ) {
+			return true;
+		}
+
+		return $i + 1 < $n
+			&& $a[ $i ] === $b[ $i + 1 ]
+			&& $a[ $i + 1 ] === $b[ $i ]
+			&& array_slice( $a, $i + 2 ) === array_slice( $b, $i + 2 );
+	}
+
+	/**
+	 * A row's field as text: strings and numbers as written, anything else
+	 * — an array, an object with no string form — as nothing to match.
+	 *
+	 * @param mixed $value The field.
+	 *
+	 * @return string
+	 */
+	private static function text( mixed $value ): string {
+		return is_scalar( $value ) || $value instanceof \Stringable ? (string) $value : '';
 	}
 }

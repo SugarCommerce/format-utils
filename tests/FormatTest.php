@@ -658,6 +658,8 @@ final class FormatTest extends TestCase {
 			'minus'  => array( '-2+3' ),
 			'at'     => array( '@SUM(A1)' ),
 			'tab'    => array( "\t=1" ),
+			'space'  => array( ' =1+1' ),
+			'break'  => array( "\n=1+1" ),
 		);
 	}
 
@@ -666,5 +668,61 @@ final class FormatTest extends TestCase {
 		$this->assertSame( '1.5', Csv::cell( 1.5 ) );
 		$this->assertSame( 'yes', Csv::cell( true ) );
 		$this->assertSame( '', Csv::cell( null ) );
+	}
+
+	public function test_csv_leaves_leading_space_before_ordinary_text_alone(): void {
+		$this->assertSame( ' hello', Csv::cell( ' hello' ) );
+	}
+
+	/**
+	 * Excel in much of Europe splits on semicolons: unquoted, the second
+	 * half of this cell would be a cell of its own, starting with `=`.
+	 */
+	public function test_csv_quotes_a_semicolon(): void {
+		$csv = Csv::build( array( 'name' ), array( array( 'Jo;=1+1' ), array( 'Jo;Bloggs' ) ), bom: false );
+
+		$this->assertSame( "name\n\"Jo;=1+1\"\n\"Jo;Bloggs\"\n", $csv );
+	}
+
+	/* ─── Out of range ────────────────────────────────────────────── */
+
+	public function test_a_size_too_large_for_an_int_is_not_parsed(): void {
+		$this->assertNull( Bytes::parse( '20000 PB' ) );
+		$this->assertNull( Bytes::parse( '99999999999999999999' ) );
+		$this->assertSame( 8 * 1125899906842624, Bytes::parse( '8 PB' ) );
+	}
+
+	public function test_a_rate_over_no_time_at_all_does_not_overflow(): void {
+		$this->assertStringEndsWith( 'PB/s', Bytes::rate( 1, 1e-300 ) );
+	}
+
+	#[RequiresPhpExtension( 'intl' )]
+	public function test_a_locale_intl_refuses_falls_back_to_english(): void {
+		$this->assertSame( Bytes::format( 1572864 ), Bytes::format_localized( 1572864, '..' ) );
+		$this->assertSame( Bytes::format( 1572864 ), Bytes::format_localized( 1572864, str_repeat( 'x', 200 ) ) );
+	}
+
+	public function test_a_duration_too_long_for_an_int_is_not_parsed(): void {
+		$this->assertNull( Duration::parse( '99999999999999999999:00' ) );
+		$this->assertNull( Duration::parse( str_repeat( '9', 400 ) . 'd' ) );
+		$this->assertSame( 3723, Duration::parse( '1:02:03' ) );
+	}
+
+	public function test_numbers_too_large_for_an_int_still_format(): void {
+		$this->assertSame( '1' . str_repeat( '0', 18 ) . 'T', Numbers::compact( 1e30 ) );
+		$this->assertSame( '1' . str_repeat( '0', 20 ) . '%', Numbers::percent( 1e20 ) );
+		$this->assertSame( '0%', Numbers::percent( -0.4 ) );
+	}
+
+	/* ─── Names that lie about their order ────────────────────────── */
+
+	public function test_pretty_takes_out_marks_that_reorder_a_name(): void {
+		$this->assertSame( 'invoicefdp.exe', FileType::pretty( "invoice\u{202E}fdp.exe" ) );
+		$this->assertSame( 'ab.zip', FileType::pretty( "a\u{2066}b\u{200F}\x00.zip" ) );
+		$this->assertSame( 'Résumé.pdf', FileType::pretty( 'Résumé.pdf' ) );
+	}
+
+	public function test_an_extension_after_a_query_on_another_line_is_not_read(): void {
+		$this->assertSame( 'svg', FileType::extension( "x.svg?\nfoo.png" ) );
 	}
 }

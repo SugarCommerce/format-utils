@@ -32,6 +32,8 @@ final readonly class FileType {
 
 	/**
 	 * Extensions per kind.
+	 *
+	 * @var array<string, list<string>>
 	 */
 	private const array KINDS = array(
 		'image'    => array( 'jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'svg', 'bmp', 'ico', 'heic', 'tiff', 'tif', 'psd', 'ai', 'eps' ),
@@ -48,6 +50,8 @@ final readonly class FileType {
 	/**
 	 * Content types by extension, for the files people commonly sell, send
 	 * and attach. Anything missing is application/octet-stream.
+	 *
+	 * @var array<string, string>
 	 */
 	private const array MIME = array(
 		// Images.
@@ -133,6 +137,8 @@ final readonly class FileType {
 	 * Safari plays it. MOV is QuickTime, which plays where its codec is
 	 * H.264 — most of them — and shows the player's own error otherwise.
 	 * FLAC and Opus are in every current browser now.
+	 *
+	 * @var list<string>
 	 */
 	private const array INLINE = array(
 		'png', 'jpg', 'jpeg', 'gif', 'webp', 'avif',
@@ -142,7 +148,16 @@ final readonly class FileType {
 	);
 
 	/**
+	 * Control characters, and the bidirectional marks, embeddings, overrides
+	 * and isolates that make a name display in an order other than the one
+	 * it has. Bytes, not code points, so invalid UTF-8 is still cleaned.
+	 */
+	private const string INVISIBLE = '/[\x00-\x1F\x7F]|\xE2\x80[\x8E\x8F\xAA-\xAE]|\xE2\x81[\xA6-\xA9]|\xD8\x9C/';
+
+	/**
 	 * Human labels per kind.
+	 *
+	 * @var array<string, string>
 	 */
 	private const array LABELS = array(
 		'image'    => 'Image',
@@ -245,7 +260,7 @@ final readonly class FileType {
 	public static function extension( string $filename ): string {
 		// Query strings and fragments are common when the "filename" is
 		// really a URL, and neither is part of the name.
-		$filename = (string) preg_replace( '/[?#].*$/', '', trim( $filename ) );
+		$filename = (string) preg_replace( '/[?#].*$/s', '', trim( $filename ) );
 		$base     = basename( str_replace( '\\', '/', $filename ) );
 
 		if ( ! str_contains( $base, '.' ) ) {
@@ -262,7 +277,10 @@ final readonly class FileType {
 	 *
 	 * For a Content-Type header on something you serve or store, where the
 	 * name is the only description there is. The same warning as kind():
-	 * this says what the file claims to be, not what it is.
+	 * this says what the file claims to be, not what it is. `.svg` is
+	 * `image/svg+xml`, a document that can run script: serve an upload with
+	 * this type only as an attachment, with `X-Content-Type-Options: nosniff`,
+	 * or use inline(), which leaves SVG out.
 	 *
 	 * @since 1.2.0
 	 *
@@ -313,6 +331,10 @@ final readonly class FileType {
 	 * path keeps only its basename. The extension is preserved either
 	 * way, because without it a filename column looks like a title column.
 	 *
+	 * Control characters and the invisible marks that reorder text are
+	 * taken out, so `invoice` + U+202E + `fdp.exe` cannot display as
+	 * `invoiceexe.pdf`.
+	 *
 	 * @since 1.0.0
 	 *
 	 * @param string $path   Path or URL.
@@ -322,7 +344,7 @@ final readonly class FileType {
 	 * @return string `—` when empty.
 	 */
 	public static function pretty( string $path, string $strip = '' ): string {
-		$path = trim( $path );
+		$path = trim( (string) preg_replace( self::INVISIBLE, '', $path ) );
 
 		if ( '' === $path ) {
 			return '—';

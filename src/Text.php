@@ -92,7 +92,7 @@ final readonly class Text {
 	 *
 	 * @param string $text Source text, with any line endings.
 	 *
-	 * @return string[] The paragraphs, in order. Empty for blank text.
+	 * @return list<string> The paragraphs, in order. Empty for blank text.
 	 */
 	public static function paragraphs( string $text ): array {
 		$lines = preg_split( '/\R/u', $text ) ?: array();
@@ -183,9 +183,11 @@ final readonly class Text {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param string[] $items       Items.
-	 * @param string   $conjunction Word before the last item.
-	 * @param int      $limit       Show at most this many, then "and N more".
+	 * @param array<mixed> $items       Items. Anything but a non-blank string
+	 *                                  is left out.
+	 * @param string       $conjunction Word before the last item.
+	 * @param int          $limit       Show at most this many, then "and N
+	 *                                  more".
 	 *
 	 * @return string
 	 */

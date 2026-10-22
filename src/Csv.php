@@ -35,35 +35,47 @@ final class Csv {
 	 *
 	 * Tab and carriage return too: some importers strip leading whitespace
 	 * and then see the `=` behind it.
+	 *
+	 * @var list<string>
 	 */
 	private const array TRIGGERS = array( '=', '+', '-', '@', "\t", "\r" );
+
+	/**
+	 * Whitespace an importer may strip before it looks for a formula; what
+	 * follows it is checked too.
+	 */
+	private const string LEADING = " \t\r\n";
+
+	/**
+	 * Characters that put a cell in quotes.
+	 *
+	 * What fputcsv() quotes for — the comma, the quote, line breaks, tab and
+	 * space — and the semicolon besides, because Excel in much of Europe
+	 * splits a .csv on semicolons. Unquoted, `Jo;=HYPERLINK(…)` is one cell
+	 * here and two there, and the second starts with `=`.
+	 */
+	private const string QUOTED = '/[,";\r\n\t ]/';
 
 	/**
 	 * A whole file: header row, then the rows.
 	 *
 	 * @since 1.1.0
 	 *
-	 * @param string[]                     $headers Column names.
-	 * @param iterable<array<int, scalar|null>> $rows    Rows, each in header order.
-	 * @param bool                         $bom     Start with a UTF-8 byte-order
-	 *                                              mark, for Excel.
+	 * @param string[]                               $headers Column names.
+	 * @param iterable<array<array-key, scalar|null>> $rows    Rows, each in
+	 *                                                         header order.
+	 * @param bool                                    $bom     Start with a
+	 *                                                         UTF-8 byte-order
+	 *                                                         mark, for Excel.
 	 *
 	 * @return string
 	 */
 	public static function build( array $headers, iterable $rows, bool $bom = true ): string {
-		$out = fopen( 'php://temp', 'r+' );
-
-		fputcsv( $out, array_map( self::cell( ... ), $headers ), escape: '' );
+		$csv = self::row( $headers );
 
 		foreach ( $rows as $row ) {
-			fputcsv( $out, array_map( self::cell( ... ), array_values( $row ) ), escape: '' );
+			$csv .= self::row( $row );
 		}
-
-		rewind( $out );
-
-		$csv = (string) stream_get_contents( $out );
-
-		fclose( $out );
 
 		return ( $bom ? "\xEF\xBB\xBF" : '' ) . $csv;
 	}
@@ -76,7 +88,7 @@ final class Csv {
 	 *
 	 * @since 1.1.0
 	 *
-	 * @param scalar|null $value Value.
+	 * @param scalar|\Stringable|null $value Value. Anything else is an empty cell.
 	 *
 	 * @return string
 	 */
@@ -89,8 +101,39 @@ final class Csv {
 			return $value ? 'yes' : 'no';
 		}
 
-		$text = (string) $value;
+		$text = is_string( $value ) || $value instanceof \Stringable ? (string) $value : '';
 
-		return '' !== $text && in_array( $text[0], self::TRIGGERS, true ) ? "'" . $text : $text;
+		if ( '' === $text ) {
+			return '';
+		}
+
+		// The first character, and the first an importer that strips leading
+		// whitespace would see.
+		$first  = ltrim( $text, self::LEADING );
+		$defuse = in_array( $text[0], self::TRIGGERS, true ) || ( '' !== $first && in_array( $first[0], self::TRIGGERS, true ) );
+
+		return $defuse ? "'" . $text : $text;
+	}
+
+	/**
+	 * One line of the file: each value made safe, quoted where it has to be,
+	 * comma-separated, ending in a newline.
+	 *
+	 * Quotes the way fputcsv() does with no escape character — a quote
+	 * inside is doubled — and for one more character; see QUOTED.
+	 *
+	 * @param array<array-key, scalar|null> $values Values, in column order.
+	 *
+	 * @return string
+	 */
+	private static function row( array $values ): string {
+		$cells = array();
+
+		foreach ( $values as $value ) {
+			$cell    = self::cell( $value );
+			$cells[] = 1 === preg_match( self::QUOTED, $cell ) ? '"' . str_replace( '"', '""', $cell ) . '"' : $cell;
+		}
+
+		return implode( ',', $cells ) . "\n";
 	}
 }

@@ -31,16 +31,22 @@ final readonly class Bytes {
 
 	/**
 	 * Binary unit names, ascending.
+	 *
+	 * @var list<string>
 	 */
 	private const array BINARY = array( 'B', 'KB', 'MB', 'GB', 'TB', 'PB' );
 
 	/**
 	 * Decimal unit names, ascending.
+	 *
+	 * @var list<string>
 	 */
 	private const array DECIMAL = array( 'B', 'kB', 'MB', 'GB', 'TB', 'PB' );
 
 	/**
 	 * Multipliers accepted when parsing, keyed by lowercase unit.
+	 *
+	 * @var array<string, int>
 	 */
 	private const array MULTIPLIERS = array(
 		'b' => 1,
@@ -91,7 +97,8 @@ final readonly class Bytes {
 	 *
 	 * The same rounding and units as format(), so the two never disagree
 	 * about the size, only about how the number is written. English, or no
-	 * intl extension, is exactly format()'s output.
+	 * intl extension, is exactly format()'s output — and so is a locale
+	 * intl refuses, so one read from a request cannot throw.
 	 *
 	 * @since 1.2.0
 	 *
@@ -112,7 +119,11 @@ final readonly class Bytes {
 
 		$plain     = str_replace( ',', '', $number );
 		$digits    = str_contains( $plain, '.' ) ? 1 : 0;
-		$formatter = new \NumberFormatter( str_replace( '-', '_', $locale ), \NumberFormatter::DECIMAL );
+		try {
+			$formatter = new \NumberFormatter( str_replace( '-', '_', $locale ), \NumberFormatter::DECIMAL );
+		} catch ( \ValueError | \IntlException ) {
+			return $size;
+		}
 
 		$formatter->setAttribute( \NumberFormatter::MIN_FRACTION_DIGITS, $digits );
 		$formatter->setAttribute( \NumberFormatter::MAX_FRACTION_DIGITS, $digits );
@@ -136,7 +147,8 @@ final readonly class Bytes {
 	 *
 	 * @param string $value Human-written size.
 	 *
-	 * @return int|null Null when nothing numeric was present.
+	 * @return int|null Null when nothing numeric was present, or the size
+	 *                  is too large for an int.
 	 */
 	public static function parse( string $value ): ?int {
 		$value = str_replace( ',', '', trim( $value ) );
@@ -147,15 +159,11 @@ final readonly class Bytes {
 
 		$unit = strtolower( $matches[2] );
 
-		if ( '' === $unit ) {
-			return (int) round( (float) $matches[1] );
-		}
-
-		if ( ! isset( self::MULTIPLIERS[ $unit ] ) ) {
+		if ( '' !== $unit && ! isset( self::MULTIPLIERS[ $unit ] ) ) {
 			return null;
 		}
 
-		return (int) round( (float) $matches[1] * self::MULTIPLIERS[ $unit ] );
+		return self::whole( (float) $matches[1] * ( self::MULTIPLIERS[ $unit ] ?? 1 ) );
 	}
 
 	/**
@@ -175,6 +183,22 @@ final readonly class Bytes {
 			return '—';
 		}
 
-		return self::format( (int) round( $bytes / $seconds ), decimal: true ) . '/s';
+		return self::format( self::whole( $bytes / $seconds ) ?? ( $bytes < 0 ? PHP_INT_MIN : PHP_INT_MAX ), decimal: true ) . '/s';
+	}
+
+	/**
+	 * A float rounded to the nearest int, or null when no int holds it.
+	 *
+	 * Casting instead would warn and wrap: a limit parsed from `20000 PB`
+	 * would come back as some unrelated, possibly negative, number.
+	 *
+	 * @param float $value Value.
+	 *
+	 * @return int|null
+	 */
+	private static function whole( float $value ): ?int {
+		$rounded = round( $value );
+
+		return $rounded >= (float) PHP_INT_MIN && $rounded < (float) PHP_INT_MAX ? (int) $rounded : null;
 	}
 }

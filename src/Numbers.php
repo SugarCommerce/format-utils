@@ -49,7 +49,7 @@ final readonly class Numbers {
 
 				// A whole value drops its decimal: "2k", not "2.0k".
 				$rendered = abs( $scaled - round( $scaled ) ) < 0.05
-					? (string) (int) round( $scaled )
+					? self::whole( $scaled )
 					: number_format( $scaled, $precision );
 
 				return $sign . $rendered . $suffix;
@@ -71,10 +71,31 @@ final readonly class Numbers {
 	 */
 	public static function percent( float $value, int $precision = 0 ): string {
 		$rendered = 0 === $precision
-			? (string) (int) round( $value )
+			? self::whole( $value )
 			: number_format( $value, $precision );
 
 		return $rendered . '%';
+	}
+
+	/**
+	 * A float rounded and written with no decimal point or separators.
+	 *
+	 * Through an int where one holds it — so `-0.4` is `0`, not `-0` — and
+	 * written out as a float where none does, rather than cast and wrapped
+	 * into some other number.
+	 *
+	 * @param float $value Value.
+	 *
+	 * @return string
+	 */
+	private static function whole( float $value ): string {
+		$rounded = round( $value );
+
+		if ( $rounded >= (float) PHP_INT_MIN && $rounded < (float) PHP_INT_MAX ) {
+			return (string) (int) $rounded;
+		}
+
+		return is_finite( $rounded ) ? number_format( $rounded, 0, '.', '' ) : (string) $rounded;
 	}
 
 	/**

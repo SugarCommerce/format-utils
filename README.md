@@ -151,7 +151,7 @@ Kinds are deliberately coarse — `image`, `video`, `audio`, `document`, `sheet`
 
 > **Never decide whether an upload is safe from its extension.** The extension is chosen by whoever uploaded it. This is presentation only; sniff the contents.
 
-`pretty()` keeps the extension after stripping a prefix, because without it a filename column reads like the title column above it — which is exactly the confusion it was written to fix.
+`pretty()` takes out control characters and the invisible marks that reorder text, so `invoice` + U+202E + `fdp.exe` cannot display as `invoiceexe.pdf`. It keeps the extension after stripping a prefix, because without it a filename column reads like the title column above it — which is exactly the confusion it was written to fix.
 
 ## Search
 
@@ -179,7 +179,7 @@ use SugarCommerce\Format\Csv;
 $csv = Csv::build( array( 'email', 'orders' ), $rows );
 ```
 
-Any text cell starting with `=`, `+`, `-`, `@`, a tab or a carriage return gets a leading apostrophe, so a value like `=HYPERLINK(…)` opens as text instead of running as a formula (CSV injection). Numbers stay numbers. The file starts with a UTF-8 byte-order mark so Excel reads accents correctly; pass `bom: false` for anything that is not a spreadsheet.
+Any text cell starting with `=`, `+`, `-`, `@`, a tab or a carriage return — or with one of those after leading whitespace an importer might strip — gets a leading apostrophe, so a value like `=HYPERLINK(…)` opens as text instead of running as a formula (CSV injection). Numbers stay numbers. A cell with a semicolon in it is quoted, so Excel set to split on semicolons, as it is across much of Europe, cannot split one cell into two and start the second with `=`. The file starts with a UTF-8 byte-order mark so Excel reads accents correctly; pass `bom: false` for anything that is not a spreadsheet.
 
 ## Testing
 
@@ -188,7 +188,7 @@ composer install
 composer test
 ```
 
-199 tests — both byte conventions and their disagreement, localized sizes, round trips through every parser, multi-byte truncation, the ordinal teens, avatar determinism and escaping, file kinds and content types from paths, URLs and MIME types, and search: typos, swaps, accents, word order and the short-word rule.
+225 tests — both byte conventions and their disagreement, localized sizes, round trips through every parser, multi-byte truncation, the ordinal teens, avatar determinism and escaping, file kinds and content types from paths, URLs and MIME types, and search: typos, swaps, accents, word order and the short-word rule.
 
 ## License
 

@@ -129,7 +129,7 @@ final readonly class Duration {
 	 *
 	 * @param string $value Written duration.
 	 *
-	 * @return int|null Null when unparseable.
+	 * @return int|null Null when unparseable, or too long for an int.
 	 */
 	public static function parse( string $value ): ?int {
 		$value = trim( strtolower( $value ) );
@@ -140,13 +140,15 @@ final readonly class Duration {
 
 		// Clock form.
 		if ( 1 === preg_match( '/^(\d+):([0-5]?\d)(?::([0-5]?\d))?$/', $value, $m ) ) {
-			return isset( $m[3] ) && '' !== $m[3]
-				? ( (int) $m[1] * 3600 ) + ( (int) $m[2] * 60 ) + (int) $m[3]
-				: ( (int) $m[1] * 60 ) + (int) $m[2];
+			return self::whole(
+				isset( $m[3] )
+					? ( (float) $m[1] * 3600 ) + ( (float) $m[2] * 60 ) + (float) $m[3]
+					: ( (float) $m[1] * 60 ) + (float) $m[2]
+			);
 		}
 
 		// Suffixed form, possibly several parts.
-		if ( 0 === preg_match_all( '/(\d+(?:\.\d+)?)\s*(d|h|m|s)/', $value, $matches, PREG_SET_ORDER ) ) {
+		if ( ! preg_match_all( '/(\d+(?:\.\d+)?)\s*(d|h|m|s)/', $value, $matches, PREG_SET_ORDER ) ) {
 			return null;
 		}
 
@@ -157,6 +159,19 @@ final readonly class Duration {
 			$seconds += (float) $match[1] * $units[ $match[2] ];
 		}
 
-		return (int) round( $seconds );
+		return self::whole( $seconds );
+	}
+
+	/**
+	 * Seconds rounded to an int, or null when no int holds them.
+	 *
+	 * @param float $seconds Seconds.
+	 *
+	 * @return int|null
+	 */
+	private static function whole( float $seconds ): ?int {
+		$rounded = round( $seconds );
+
+		return $rounded >= (float) PHP_INT_MIN && $rounded < (float) PHP_INT_MAX ? (int) $rounded : null;
 	}
 }

@@ -137,4 +137,58 @@ final class SearchTest extends TestCase {
 	public function test_folding_takes_the_case_and_the_accents_off(): void {
 		$this->assertSame( 'resume', Search::fold( 'RÉSUMÉ' ) );
 	}
+
+	/* ─── Cost ──────────────────────────────────────────────────────── */
+
+	/**
+	 * A pasted wall of text against long names used to build a table the
+	 * size of both multiplied, twice per word per row: about a second a row.
+	 */
+	public function test_a_long_query_against_long_names_is_quick(): void {
+		$rows = array_fill( 0, 20, array( 'name' => str_repeat( 'b', 3000 ) ) );
+		$from = microtime( true );
+
+		$this->assertSame( array(), Search::filter( $rows, str_repeat( 'a', 3000 ) ) );
+		$this->assertLessThan( 1.0, microtime( true ) - $from );
+	}
+
+	/**
+	 * The quick one-edit test agrees with distance() for every pair of
+	 * short words over a small alphabet, where every kind of edit occurs.
+	 */
+	public function test_the_quick_test_agrees_with_the_distance(): void {
+		$words = array( '' );
+
+		for ( $length = 1; $length <= 5; $length++ ) {
+			foreach ( $words as $word ) {
+				if ( strlen( $word ) === $length - 1 ) {
+					foreach ( array( 'a', 'b', 'c' ) as $letter ) {
+						$words[] = $word . $letter;
+					}
+				}
+			}
+		}
+
+		$long = array_values( array_filter( $words, static fn ( string $w ): bool => strlen( $w ) >= 4 ) );
+
+		foreach ( $long as $term ) {
+			foreach ( $words as $word ) {
+				if ( '' === $word ) {
+					continue;
+				}
+
+				$expected = str_contains( $word, $term )
+					|| Search::distance( $term, $word ) <= 1
+					|| Search::distance( $term, substr( $word, 0, strlen( $term ) ) ) <= 1;
+
+				$this->assertSame( $expected, Search::matches( $word, array( $term ) ), $term . ' / ' . $word );
+			}
+		}
+	}
+
+	public function test_a_field_that_is_not_text_matches_nothing(): void {
+		$rows = array( array( 'name' => array( 'Master.wav' ) ), array( 'name' => 'Master.wav' ) );
+
+		$this->assertSame( array( array( 'name' => 'Master.wav' ) ), Search::filter( $rows, 'master' ) );
+	}
 }
