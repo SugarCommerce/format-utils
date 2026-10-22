@@ -153,7 +153,7 @@ final readonly class Bytes {
 	public static function parse( string $value ): ?int {
 		$value = str_replace( ',', '', trim( $value ) );
 
-		if ( 1 !== preg_match( '/^(-?\d+(?:\.\d+)?)\s*([a-zA-Z]*)$/', $value, $matches ) ) {
+		if ( 1 !== preg_match( '/^(-?\d+(?:\.\d+)?)\s*([a-zA-Z]*)$/D', $value, $matches ) ) {
 			return null;
 		}
 

@@ -139,7 +139,7 @@ final readonly class Duration {
 		}
 
 		// Clock form.
-		if ( 1 === preg_match( '/^(\d+):([0-5]?\d)(?::([0-5]?\d))?$/', $value, $m ) ) {
+		if ( 1 === preg_match( '/^(\d+):([0-5]?\d)(?::([0-5]?\d))?$/D', $value, $m ) ) {
 			return self::whole(
 				isset( $m[3] )
 					? ( (float) $m[1] * 3600 ) + ( (float) $m[2] * 60 ) + (float) $m[3]

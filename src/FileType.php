@@ -269,7 +269,7 @@ final readonly class FileType {
 
 		$extension = strtolower( substr( $base, strrpos( $base, '.' ) + 1 ) );
 
-		return 1 === preg_match( '/^[a-z0-9]{1,10}$/', $extension ) ? $extension : '';
+		return 1 === preg_match( '/^[a-z0-9]{1,10}$/D', $extension ) ? $extension : '';
 	}
 
 	/**

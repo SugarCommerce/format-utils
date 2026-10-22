@@ -725,4 +725,21 @@ final class FormatTest extends TestCase {
 	public function test_an_extension_after_a_query_on_another_line_is_not_read(): void {
 		$this->assertSame( 'svg', FileType::extension( "x.svg?\nfoo.png" ) );
 	}
+
+	/* ─── A newline on the end ────────────────────────────────────── */
+
+	/**
+	 * `$` also matches just before a final newline. The input is trimmed
+	 * first, but a query string or a comma after the newline outlived the
+	 * trim, and the newline was then let through.
+	 */
+	public function test_an_extension_ending_in_a_newline_is_refused(): void {
+		$this->assertSame( '', FileType::extension( "report.pdf\n?v=2" ) );
+		$this->assertSame( 'pdf', FileType::extension( 'report.pdf?v=2' ) );
+	}
+
+	public function test_a_size_ending_in_a_newline_is_not_parsed(): void {
+		$this->assertNull( Bytes::parse( "10 MB\n," ) );
+		$this->assertSame( 10485760, Bytes::parse( '10 MB,' ) );
+	}
 }
