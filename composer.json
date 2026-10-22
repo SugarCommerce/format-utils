@@ -1,7 +1,7 @@
 {
   "name": "sugarcommerce/format-utils",
   "description": "Display formatting: byte sizes, durations, compact numbers, word-safe truncation, deterministic initials avatars, file-type labels and content types, and forgiving search. Parses back what it formats. Zero dependencies.",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "type": "library",
   "license": "GPL-2.0-or-later",
   "homepage": "https://github.com/sugarcommerce/format-utils",

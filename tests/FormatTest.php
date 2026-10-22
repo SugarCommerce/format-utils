@@ -769,4 +769,26 @@ final class FormatTest extends TestCase {
 		$this->assertNull( Bytes::parse( "10 MB\n," ) );
 		$this->assertSame( 10485760, Bytes::parse( '10 MB,' ) );
 	}
+
+	/* ─── Text::middle (1.6.0) ──────────────────────────────────────── */
+
+	public function test_middle_keeps_both_ends(): void {
+		$hash = 'a1b2c3d4e5f60718293a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e';
+
+		$this->assertSame( 'a1b2c3d4e5…a2b3c4d5e', Text::middle( $hash, 10, 9 ) );
+		$this->assertSame( 'a1b2c3d4e5…', Text::middle( $hash, 10, 0 ) );
+		$this->assertSame( '…c4d5e', Text::middle( $hash, 0, 5 ) );
+	}
+
+	public function test_middle_leaves_what_would_not_get_shorter(): void {
+		$this->assertSame( 'abcdefghij', Text::middle( 'abcdefghij', 5, 4 ) );
+		$this->assertSame( 'abcdefghijk', Text::middle( 'abcdefghijk', 5, 5 ) );
+		$this->assertSame( 'abcdefghijkl', Text::middle( 'abcdefghijkl', 5, 6 ), 'same length after shortening' );
+		$this->assertSame( 'abcde…hijklm', Text::middle( 'abcdefghijklm', 5, 6 ) );
+	}
+
+	public function test_middle_counts_characters(): void {
+		$this->assertSame( 'éééé…üü', Text::middle( 'éééééééééüü', 4, 2 ) );
+		$this->assertTrue( mb_check_encoding( Text::middle( str_repeat( '漢', 50 ), 3, 3 ), 'UTF-8' ) );
+	}
 }

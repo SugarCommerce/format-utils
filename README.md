@@ -77,6 +77,7 @@ Duration::parse( '2h 5m' );  // 7500
 use SugarCommerce\Format\Text;
 
 Text::truncate( $title, 40 );              // word-safe, ellipsis inside the budget
+Text::middle( $hash, 10, 8 );              // 'a1b2c3d4e5…c3d4e5f6' — both ends kept
 Text::excerpt( $body, 160 );               // collapses newlines first
 Text::initials( 'Dave Sherlock' );         // 'DS' — first and last, for a name
 Text::initials( 'Trance Vol 1', from_start: true ); // 'TV' — first two, for a title
@@ -191,7 +192,7 @@ composer install
 composer test
 ```
 
-239 tests — both byte conventions and their disagreement, localized sizes, round trips through every parser, multi-byte truncation, the ordinal teens, names in one case, avatar determinism and escaping, file kinds and content types from paths, URLs and MIME types, and search: typos, swaps, accents, word order and the short-word rule.
+242 tests — both byte conventions and their disagreement, localized sizes, round trips through every parser, multi-byte truncation, the ordinal teens, names in one case, avatar determinism and escaping, file kinds and content types from paths, URLs and MIME types, and search: typos, swaps, accents, word order and the short-word rule.
 
 ## License
 

@@ -60,6 +60,38 @@ final readonly class Text {
 	}
 
 	/**
+	 * Keep both ends, drop the middle: `a1b2c3d4e5…f6a7b8c9`.
+	 *
+	 * For identifiers people compare by eye — hashes, keys, long references —
+	 * where the start says what it is and the end tells two apart, so
+	 * truncate() keeping only the start would make different values look
+	 * the same. Counts characters, not bytes. Returned unchanged when
+	 * shortening would not make it shorter.
+	 *
+	 * For a credential, where the point is that it cannot be read back, use
+	 * sanitize's Input::mask() instead: this shows as much as it is told to.
+	 *
+	 * @since 1.6.0
+	 *
+	 * @param string $text     Source text.
+	 * @param int    $head     Characters kept from the start.
+	 * @param int    $tail     Characters kept from the end.
+	 * @param string $ellipsis Put where the middle was.
+	 *
+	 * @return string
+	 */
+	public static function middle( string $text, int $head, int $tail, string $ellipsis = '…' ): string {
+		$head = max( 0, $head );
+		$tail = max( 0, $tail );
+
+		if ( mb_strlen( $text ) <= $head + $tail + mb_strlen( $ellipsis ) ) {
+			return $text;
+		}
+
+		return mb_substr( $text, 0, $head ) . $ellipsis . ( $tail > 0 ? mb_substr( $text, -$tail ) : '' );
+	}
+
+	/**
 	 * Collapse to a single-line summary.
 	 *
 	 * Whitespace runs and line breaks become single spaces before
