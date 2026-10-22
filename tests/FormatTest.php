@@ -272,6 +272,33 @@ final class FormatTest extends TestCase {
 		$this->assertSame( array( '<b>bold</b> & **not**' ), Text::paragraphs( '<b>bold</b> & **not**' ) );
 	}
 
+	#[DataProvider( 'name_cased' )]
+	public function test_name_case( string $name, string $expected ): void {
+		$this->assertSame( $expected, Text::name_case( $name ) );
+	}
+
+	public static function name_cased(): array {
+		return array(
+			'lower'              => array( 'george hill', 'George Hill' ),
+			'upper'              => array( 'GEORGE HILL', 'George Hill' ),
+			'mixed'              => array( 'george Hill', 'George Hill' ),
+			'apostrophe'         => array( "o'brien", "O'brien" ),
+			'capitals inside'    => array( 'McDonald', 'Mcdonald' ),
+			'hyphen'             => array( 'anne-marie smith', 'Anne-marie Smith' ),
+			'trimmed'            => array( "  \tdavid sherlock\n ", 'David Sherlock' ),
+			'inner whitespace'   => array( "david\tsherlock", "David\tSherlock" ),
+			'accent lowered'     => array( 'ZOË ÉLODIE', 'Zoë élodie' ),
+			'empty'              => array( '', '' ),
+			'only whitespace'    => array( "  \t ", '' ),
+		);
+	}
+
+	public function test_name_case_is_ucwords_of_the_utf8_lower_case(): void {
+		foreach ( array( 'GEORGE hill', 'ÅSA LARSSON', "d'arcy o'NEILL", '  x  ' ) as $name ) {
+			$this->assertSame( ucwords( mb_strtolower( trim( $name ), 'UTF-8' ) ), Text::name_case( $name ) );
+		}
+	}
+
 	#[DataProvider( 'humanized' )]
 	public function test_humanize( string $key, string $expected ): void {
 		$this->assertSame( $expected, Text::humanize( $key ) );

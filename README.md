@@ -88,9 +88,12 @@ Text::ordinal( 21 );                       // '21st'
 Text::ordinal( 11 );                       // '11th'  — the teens are the trap
 Text::paragraphs( $description );          // ['First line', 'Second line'] — every break is one
 Text::humanize( 'sample_rate' );           // 'Sample rate' — a key as a label; 'BPM' stays 'BPM'
+Text::name_case( '  GEORGE HILL ' );       // 'George Hill' — one case for imported names
 ```
 
 Truncation counts characters, not bytes, so a limit of 20 means twenty visible characters whether the text is English or Japanese. It only breaks at a word boundary if one is reasonably near the end — otherwise a long unbroken string would collapse to almost nothing.
+
+`name_case()` is `ucwords()` of the UTF-8 lower case, trimmed. It lowers every capital first, so `McDonald` becomes `Mcdonald` — nothing here can tell which capitals were deliberate — and it capitalises a word's first letter as `ucwords()` does, as a byte, so `élodie` stays `élodie` rather than guessing at a locale. An empty or all-whitespace name is `''`; what to show in its place is the caller's choice.
 
 `plural()` handles the common English endings and is not a linguistics engine: `person` becomes `persons` unless you say otherwise.
 
@@ -188,7 +191,7 @@ composer install
 composer test
 ```
 
-225 tests — both byte conventions and their disagreement, localized sizes, round trips through every parser, multi-byte truncation, the ordinal teens, avatar determinism and escaping, file kinds and content types from paths, URLs and MIME types, and search: typos, swaps, accents, word order and the short-word rule.
+239 tests — both byte conventions and their disagreement, localized sizes, round trips through every parser, multi-byte truncation, the ordinal teens, names in one case, avatar determinism and escaping, file kinds and content types from paths, URLs and MIME types, and search: typos, swaps, accents, word order and the short-word rule.
 
 ## License
 

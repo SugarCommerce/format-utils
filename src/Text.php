@@ -138,6 +138,32 @@ final readonly class Text {
 	}
 
 	/**
+	 * A name in consistent case: `GEORGE HILL` → `George Hill`.
+	 *
+	 * For names typed by their owners and imported from wherever they were
+	 * typed — all capitals, all lower case, a mix of both — so a list of
+	 * them reads as one list. Lower-cased first, so `McDonald` becomes
+	 * `Mcdonald` and `o'brien` becomes `O'brien`: nothing here knows which
+	 * capitals were deliberate, and a list where some were kept and some
+	 * were not looks worse than one rule applied evenly.
+	 *
+	 * Words split on whitespace only, and the first letter of each is
+	 * capitalised the way ucwords() does it, as a byte: a word starting
+	 * with a letter outside ASCII — `élodie` — keeps it in lower case
+	 * rather than guessing at a locale. The rest of the name is lowered as
+	 * UTF-8, so `ÉLODIE` is `élodie`.
+	 *
+	 * @since 1.5.0
+	 *
+	 * @param string $name Source name.
+	 *
+	 * @return string Trimmed; '' when there was nothing but whitespace.
+	 */
+	public static function name_case( string $name ): string {
+		return ucwords( mb_strtolower( trim( $name ), 'UTF-8' ) );
+	}
+
+	/**
 	 * Up to two initials.
 	 *
 	 * Which two depends on what the text is, and the two cases disagree:
