@@ -19,6 +19,7 @@ use PHPUnit\Framework\TestCase;
 use SugarCommerce\Format\Avatar;
 use SugarCommerce\Format\Bytes;
 use SugarCommerce\Format\Csv;
+use SugarCommerce\Format\MissingColumns;
 use SugarCommerce\Format\Duration;
 use SugarCommerce\Format\FileType;
 use SugarCommerce\Format\Numbers;
@@ -790,5 +791,64 @@ final class FormatTest extends TestCase {
 	public function test_middle_counts_characters(): void {
 		$this->assertSame( 'éééé…üü', Text::middle( 'éééééééééüü', 4, 2 ) );
 		$this->assertTrue( mb_check_encoding( Text::middle( str_repeat( '漢', 50 ), 3, 3 ), 'UTF-8' ) );
+	}
+
+	/* ─── Csv::read (1.7.0) ─────────────────────────────────────────── */
+
+	/**
+	 * A CSV file in the temp directory.
+	 */
+	private function csv_file( string $contents ): string {
+		$path = tempnam( sys_get_temp_dir(), 'csv' );
+		file_put_contents( $path, $contents );
+
+		return $path;
+	}
+
+	public function test_read_keys_rows_by_header_and_trims(): void {
+		$path = $this->csv_file( "\xEF\xBB\xBFEmail , Name,Total\r\n a@example.com ,\"Smith, Jo\",5\n\nb@example.com,\"Say \"\"hi\"\"\"\n" );
+
+		$rows = iterator_to_array( Csv::read( $path, array( 'Email', 'Total' ) ) );
+
+		$this->assertSame(
+			array(
+				2 => array( 'Email' => 'a@example.com', 'Name' => 'Smith, Jo', 'Total' => '5' ),
+				4 => array( 'Email' => 'b@example.com', 'Name' => 'Say "hi"', 'Total' => '' ),
+			),
+			$rows
+		);
+	}
+
+	public function test_read_refuses_a_file_without_the_required_columns(): void {
+		$path = $this->csv_file( "Email,Date\na@example.com,2026-01-01\n" );
+
+		try {
+			iterator_to_array( Csv::read( $path, array( 'Email', 'Transaction ID', 'Status' ) ) );
+			$this->fail( 'expected MissingColumns' );
+		} catch ( MissingColumns $e ) {
+			$this->assertSame( array( 'Transaction ID', 'Status' ), $e->missing );
+			$this->assertSame( array( 'Email', 'Date' ), $e->found );
+		}
+	}
+
+	public function test_read_reads_its_own_export_back(): void {
+		$rows = array( array( 'a@example.com', '=SUM(A1)' ), array( 'b@example.com', 'Café' ) );
+		$path = $this->csv_file( Csv::build( array( 'email', 'note' ), $rows ) );
+
+		$this->assertSame(
+			array( array( 'email' => 'a@example.com', 'note' => "'=SUM(A1)" ), array( 'email' => 'b@example.com', 'note' => 'Café' ) ),
+			array_values( iterator_to_array( Csv::read( $path ) ) )
+		);
+	}
+
+	public function test_read_takes_another_separator_and_an_empty_file(): void {
+		$this->assertSame( array( array( 'a' => '1', 'b' => '2' ) ), array_values( iterator_to_array( Csv::read( $this->csv_file( "a;b\n1;2\n" ), separator: ';' ) ) ) );
+		$this->assertSame( array(), iterator_to_array( Csv::read( $this->csv_file( '' ) ) ) );
+	}
+
+	public function test_read_of_a_missing_file_throws(): void {
+		$this->expectException( \RuntimeException::class );
+
+		iterator_to_array( Csv::read( sys_get_temp_dir() . '/no-such-file-' . bin2hex( random_bytes( 4 ) ) . '.csv' ) );
 	}
 }

@@ -81,6 +81,90 @@ final class Csv {
 	}
 
 	/**
+	 * Rows of a CSV file, keyed by its header.
+	 *
+	 * The header row names the columns, so a file whose columns were
+	 * reordered — every export tool does it eventually — still reads the
+	 * same. A byte-order mark is removed first: Excel writes one, and left
+	 * in place it becomes part of the first column's name, which then never
+	 * matches. Names and values are trimmed; a short row reads its missing
+	 * cells as ''; a fully blank line is skipped.
+	 *
+	 * Columns in $required are checked before the first row is yielded, and
+	 * a file that lacks any is refused with {@see MissingColumns} — so the
+	 * mistake is "wrong file", not thousands of rows of blanks.
+	 *
+	 * ```php
+	 * try {
+	 *     foreach ( Csv::read( $path, array( 'Email', 'Date' ) ) as $line => $row ) {
+	 *         $row['Email'];
+	 *     }
+	 * } catch ( MissingColumns $e ) {
+	 *     echo 'Missing: ' . implode( ', ', $e->missing );
+	 * }
+	 * ```
+	 *
+	 * Reads with PHP's own parser (RFC 4180 quoting, no escape character —
+	 * the behaviour PHP 9 makes the default). Not for untrusted files of
+	 * unbounded size: each row is read whole.
+	 *
+	 * @since 1.7.0
+	 *
+	 * @param string       $path      File to read.
+	 * @param list<string> $required  Columns the header must have.
+	 * @param string       $separator Field separator.
+	 *
+	 * @return \Generator<int, array<string, string>> Line number (the header
+	 *                                               is line 1) => row.
+	 *
+	 * @throws \RuntimeException When the file cannot be opened.
+	 * @throws MissingColumns    When a required column is absent.
+	 */
+	public static function read( string $path, array $required = array(), string $separator = ',' ): \Generator {
+		$handle = is_file( $path ) ? fopen( $path, 'rb' ) : false;
+
+		if ( false === $handle ) {
+			throw new \RuntimeException( 'Could not open CSV file: ' . $path );
+		}
+
+		try {
+			$header = fgetcsv( $handle, null, $separator, '"', '' );
+			$header = false === $header ? array() : $header;
+
+			if ( array() !== $header && is_string( $header[0] ) && str_starts_with( $header[0], "\xEF\xBB\xBF" ) ) {
+				$header[0] = substr( $header[0], 3 );
+			}
+
+			$names   = array_map( static fn( mixed $name ): string => trim( (string) $name ), $header );
+			$missing = array_values( array_diff( $required, $names ) );
+
+			if ( array() !== $missing ) {
+				throw new MissingColumns( $missing, $names );
+			}
+
+			$line = 1;
+
+			while ( false !== ( $cells = fgetcsv( $handle, null, $separator, '"', '' ) ) ) {
+				++$line;
+
+				if ( array( null ) === $cells ) {
+					continue;
+				}
+
+				$row = array();
+
+				foreach ( $names as $index => $name ) {
+					$row[ $name ] = trim( (string) ( $cells[ $index ] ?? '' ) );
+				}
+
+				yield $line => $row;
+			}
+		} finally {
+			fclose( $handle );
+		}
+	}
+
+	/**
 	 * One value, made safe to open.
 	 *
 	 * Numbers are left alone — a negative amount is a number, not a formula,

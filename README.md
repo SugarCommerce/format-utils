@@ -185,6 +185,22 @@ $csv = Csv::build( array( 'email', 'orders' ), $rows );
 
 Any text cell starting with `=`, `+`, `-`, `@`, a tab or a carriage return — or with one of those after leading whitespace an importer might strip — gets a leading apostrophe, so a value like `=HYPERLINK(…)` opens as text instead of running as a formula (CSV injection). Numbers stay numbers. A cell with a semicolon in it is quoted, so Excel set to split on semicolons, as it is across much of Europe, cannot split one cell into two and start the second with `=`. The file starts with a UTF-8 byte-order mark so Excel reads accents correctly; pass `bom: false` for anything that is not a spreadsheet.
 
+Reading one back, or an export from somewhere else:
+
+```php
+use SugarCommerce\Format\{Csv, MissingColumns};
+
+try {
+    foreach ( Csv::read( $path, array( 'Email', 'Date' ) ) as $line => $row ) {
+        $row['Email'];   // keyed by header, trimmed; short rows read '' for the rest
+    }
+} catch ( MissingColumns $e ) {
+    echo 'Wrong file — missing ' . implode( ', ', $e->missing );
+}
+```
+
+Columns are found by name, so a reordered export still reads the same. A byte-order mark is removed — left in, it becomes part of the first column's name. A file without a required column is refused before the first row.
+
 ## Testing
 
 ```bash
@@ -192,7 +208,7 @@ composer install
 composer test
 ```
 
-242 tests — both byte conventions and their disagreement, localized sizes, round trips through every parser, multi-byte truncation, the ordinal teens, names in one case, avatar determinism and escaping, file kinds and content types from paths, URLs and MIME types, and search: typos, swaps, accents, word order and the short-word rule.
+247 tests — both byte conventions and their disagreement, localized sizes, round trips through every parser, multi-byte truncation, CSV read back by header, the ordinal teens, names in one case, avatar determinism and escaping, file kinds and content types from paths, URLs and MIME types, and search: typos, swaps, accents, word order and the short-word rule.
 
 ## License
 
