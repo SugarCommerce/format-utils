@@ -78,6 +78,127 @@ final readonly class Numbers {
 	}
 
 	/**
+	 * A number with a language's own separators: `1.234,5` in German,
+	 * `1 234,5` in French, `1,234.5` in English.
+	 *
+	 * For counts printed on their own, like an allowance of `5.000` files,
+	 * where `5,000` in the middle of a German sentence reads as the English
+	 * page it came from — and to a German reader as five.
+	 *
+	 * The same rule as Bytes::format_localized(): English, or no intl
+	 * extension, is exactly number_format()'s output, and so is a locale
+	 * intl refuses, so one read from a request cannot throw. Halves round
+	 * away from zero either way — ICU's default is to the even neighbour,
+	 * which would make the two paths disagree about `2.5`.
+	 *
+	 * @since 1.8.0
+	 *
+	 * @param int|float $value    The number.
+	 * @param string    $locale   A language tag: `de`, `pt-BR`, `fr_FR`.
+	 * @param int       $decimals Decimal places, always shown.
+	 *
+	 * @return string
+	 */
+	public static function format_localized( int|float $value, string $locale, int $decimals = 0 ): string {
+		$decimals = max( 0, $decimals );
+		$value    = self::unsigned_zero( $value, $decimals );
+		$plain    = number_format( $value, $decimals );
+
+		if ( is_float( $value ) && ! is_finite( $value ) ) {
+			return $plain;
+		}
+
+		$formatter = self::formatter( $locale, \NumberFormatter::DECIMAL, $decimals, $decimals );
+		$written   = $formatter?->format( $value );
+
+		return is_string( $written ) ? $written : $plain;
+	}
+
+	/**
+	 * A percentage with a language's own separators and sign: `3,9 %` in
+	 * German, `3.9%` in English.
+	 *
+	 * Like percent(), $value is already a percentage — 3.9 for 3.9% — and
+	 * English, no intl, or a locale intl refuses is percent()'s output.
+	 * The language decides more than the decimal mark: French and German
+	 * put a no-break space before the sign, and Arabic marks the direction.
+	 *
+	 * $trim drops trailing zeros, the way a price list writes a rate:
+	 * `10%` and `3.9%` from the same column, not `10.00%` and `3.90%`.
+	 *
+	 * @since 1.8.0
+	 *
+	 * @param float  $value     A percentage: 42.4 for 42.4%.
+	 * @param string $locale    A language tag: `de`, `pt-BR`, `fr_FR`.
+	 * @param int    $precision Decimal places; with $trim, at most this many.
+	 * @param bool   $trim      Drop trailing zeros after the decimal mark.
+	 *
+	 * @return string
+	 */
+	public static function percent_localized( float $value, string $locale, int $precision = 0, bool $trim = false ): string {
+		$precision = max( 0, $precision );
+		$value     = (float) self::unsigned_zero( $value, $precision );
+		$plain     = self::percent( $value, $precision );
+
+		if ( $trim && $precision > 0 ) {
+			$plain = rtrim( rtrim( substr( $plain, 0, -1 ), '0' ), '.' ) . '%';
+		}
+
+		if ( ! is_finite( $value ) ) {
+			return $plain;
+		}
+
+		$formatter = self::formatter( $locale, \NumberFormatter::PERCENT, $trim ? 0 : $precision, $precision );
+		$written   = $formatter?->format( $value / 100 );
+
+		return is_string( $written ) ? $written : $plain;
+	}
+
+	/**
+	 * An intl formatter for a language, or null where the plain English
+	 * output stands: English itself, no intl, or a tag intl refuses.
+	 *
+	 * @param string $locale Language tag.
+	 * @param int    $style  NumberFormatter style.
+	 * @param int    $min    Fewest decimal places.
+	 * @param int    $max    Most decimal places.
+	 *
+	 * @return \NumberFormatter|null
+	 */
+	private static function formatter( string $locale, int $style, int $min, int $max ): ?\NumberFormatter {
+		if ( '' === $locale || str_starts_with( strtolower( $locale ), 'en' ) || ! class_exists( \NumberFormatter::class ) ) {
+			return null;
+		}
+
+		try {
+			$formatter = new \NumberFormatter( str_replace( '-', '_', $locale ), $style );
+		} catch ( \ValueError | \IntlException ) {
+			return null;
+		}
+
+		$formatter->setAttribute( \NumberFormatter::MIN_FRACTION_DIGITS, $min );
+		$formatter->setAttribute( \NumberFormatter::MAX_FRACTION_DIGITS, $max );
+		$formatter->setAttribute( \NumberFormatter::ROUNDING_MODE, \NumberFormatter::ROUND_HALFUP );
+
+		return $formatter;
+	}
+
+	/**
+	 * Zero for a value that rounds to it, so nothing prints `-0`.
+	 *
+	 * number_format() already drops the sign; ICU keeps it, and `-0 %` beside
+	 * a rate that did not change reads as a fall.
+	 *
+	 * @param int|float $value    Value.
+	 * @param int       $decimals Decimal places it will be shown to.
+	 *
+	 * @return int|float
+	 */
+	private static function unsigned_zero( int|float $value, int $decimals ): int|float {
+		return is_float( $value ) && 0.0 === round( $value, $decimals ) ? 0.0 : $value;
+	}
+
+	/**
 	 * A float rounded and written with no decimal point or separators.
 	 *
 	 * Through an int where one holds it — so `-0.4` is `0`, not `-0` — and

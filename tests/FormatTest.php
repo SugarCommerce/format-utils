@@ -460,6 +460,91 @@ final class FormatTest extends TestCase {
 		$this->assertSame( '42.4%', Numbers::percent( 42.4, 1 ) );
 	}
 
+	/**
+	 * A count written the language's way; English is number_format() exactly.
+	 */
+	#[RequiresPhpExtension( 'intl' )]
+	public function test_a_number_in_another_language(): void {
+		$this->assertSame( '5.000', Numbers::format_localized( 5000, 'de' ) );
+		// French groups with a narrow no-break space; which one depends on the
+		// ICU build, so only that it is a space and not a mark.
+		$this->assertMatchesRegularExpression( '/^5\p{Zs}000$/u', Numbers::format_localized( 5000, 'fr' ) );
+		$this->assertSame( '1.234,57', Numbers::format_localized( 1234.5678, 'de_DE', 2 ) );
+		$this->assertSame( '1.234,50', Numbers::format_localized( 1234.5, 'pt-BR', 2 ), 'Decimals are always shown.' );
+		$this->assertSame( '9.223.372.036.854.775.807', Numbers::format_localized( PHP_INT_MAX, 'de' ), 'An int is not squeezed through a float.' );
+	}
+
+	public function test_a_number_in_english_is_number_format(): void {
+		$this->assertSame( number_format( 5000 ), Numbers::format_localized( 5000, 'en' ) );
+		$this->assertSame( number_format( 1234.5678, 2 ), Numbers::format_localized( 1234.5678, 'en-GB', 2 ) );
+		$this->assertSame( '5,000', Numbers::format_localized( 5000, '' ) );
+		$this->assertSame( '5', Numbers::format_localized( 5, 'en', -2 ), 'Negative decimals are none.' );
+	}
+
+	/**
+	 * ICU rounds a half to the even neighbour by default; number_format()
+	 * away from zero. The two paths must agree about the number.
+	 */
+	#[RequiresPhpExtension( 'intl' )]
+	public function test_both_paths_round_a_half_the_same_way(): void {
+		$this->assertSame( '3', Numbers::format_localized( 2.5, 'de' ) );
+		$this->assertSame( '-3', Numbers::format_localized( -2.5, 'de' ) );
+		$this->assertSame( '3', Numbers::format_localized( 2.5, 'en' ) );
+		$this->assertSame( "1\u{00A0}%", Numbers::percent_localized( 0.5, 'de' ) );
+	}
+
+	#[RequiresPhpExtension( 'intl' )]
+	public function test_nothing_rounds_to_minus_zero(): void {
+		$this->assertSame( '0', Numbers::format_localized( -0.4, 'de' ) );
+		$this->assertSame( '0,00', Numbers::format_localized( -0.004, 'de', 2 ) );
+		$this->assertSame( "0\u{00A0}%", Numbers::percent_localized( -0.4, 'de' ) );
+		$this->assertSame( '0%', Numbers::percent_localized( -0.4, 'en' ) );
+	}
+
+	/**
+	 * The language decides the sign's place and spacing, not only the mark.
+	 */
+	#[RequiresPhpExtension( 'intl' )]
+	public function test_a_percentage_in_another_language(): void {
+		$this->assertSame( "42\u{00A0}%", Numbers::percent_localized( 42.4, 'de' ) );
+		$this->assertMatchesRegularExpression( '/^42,4\p{Zs}%$/u', Numbers::percent_localized( 42.4, 'fr', 1 ) );
+		$this->assertSame( "10,00\u{00A0}%", Numbers::percent_localized( 10, 'de', 2 ) );
+		$this->assertSame( '42%', Numbers::percent_localized( 42.4, 'ja' ) );
+	}
+
+	public function test_a_percentage_in_english_is_percent(): void {
+		$this->assertSame( Numbers::percent( 42.4 ), Numbers::percent_localized( 42.4, 'en' ) );
+		$this->assertSame( Numbers::percent( 42.44, 1 ), Numbers::percent_localized( 42.44, 'en-US', 1 ) );
+		$this->assertSame( '10.00%', Numbers::percent_localized( 10, 'en', 2 ) );
+	}
+
+	/**
+	 * A price list writes `10%` and `3.9%` in the same column.
+	 */
+	public function test_trailing_zeros_can_be_trimmed(): void {
+		$this->assertSame( '10%', Numbers::percent_localized( 10, 'en', 2, trim: true ) );
+		$this->assertSame( '3.9%', Numbers::percent_localized( 3.9, 'en', 2, trim: true ) );
+		$this->assertSame( '3.95%', Numbers::percent_localized( 3.949, 'en', 2, trim: true ) );
+		$this->assertSame( '100%', Numbers::percent_localized( 100, 'en', 0, trim: true ), 'Only zeros after the mark go.' );
+		$this->assertSame( '1,200%', Numbers::percent_localized( 1200, 'en', 2, trim: true ) );
+	}
+
+	#[RequiresPhpExtension( 'intl' )]
+	public function test_trailing_zeros_are_trimmed_in_another_language_too(): void {
+		$this->assertSame( "10\u{00A0}%", Numbers::percent_localized( 10, 'de', 2, trim: true ) );
+		$this->assertSame( "3,9\u{00A0}%", Numbers::percent_localized( 3.9, 'de', 2, trim: true ) );
+	}
+
+	/**
+	 * A tag read from a request cannot throw.
+	 */
+	#[RequiresPhpExtension( 'intl' )]
+	public function test_a_locale_intl_refuses_falls_back_to_english_for_numbers(): void {
+		$this->assertSame( '5,000', Numbers::format_localized( 5000, '..' ) );
+		$this->assertSame( '5,000', Numbers::format_localized( 5000, str_repeat( 'x', 200 ) ) );
+		$this->assertSame( '3.9%', Numbers::percent_localized( 3.9, 'xx_YY', 2, trim: true ) );
+	}
+
 	public function test_share(): void {
 		$this->assertSame( '25%', Numbers::share( 25, 100 ) );
 		$this->assertSame( '—', Numbers::share( 5, 0 ), 'A share of nothing is undefined, not zero.' );

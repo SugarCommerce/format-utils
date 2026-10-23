@@ -113,7 +113,14 @@ Numbers::share( 25, 100 );             // '25%'
 Numbers::share( 5, 0 );                // '—'     — a share of nothing is undefined
 Numbers::change( 120, 100 );           // '+20%'
 Numbers::change( 50, 0 );              // 'new'
+
+Numbers::format_localized( 5000, 'de' );                     // '5.000'
+Numbers::format_localized( 1234.5, 'pt-BR', 2 );             // '1.234,50'
+Numbers::percent_localized( 3.9, 'de', 2, trim: true );      // '3,9 %'  — a no-break space before the sign
+Numbers::percent_localized( 10, 'en', 2, trim: true );       // '10%'    — not '10.00%'
 ```
+
+The localized pair follows `Bytes::format_localized()`: English, no intl extension, or a locale intl refuses gives exactly `number_format()` / `percent()`'s output, so a tag read from a request cannot throw. Halves round away from zero on both paths (ICU's default is to the even neighbour), and nothing prints `-0`.
 
 For money use [`sugarcommerce/currency`](https://github.com/sugarcommerce/currency) — money is integer minor units and needs its own rules.
 
@@ -208,7 +215,7 @@ composer install
 composer test
 ```
 
-247 tests — both byte conventions and their disagreement, localized sizes, round trips through every parser, multi-byte truncation, CSV read back by header, the ordinal teens, names in one case, avatar determinism and escaping, file kinds and content types from paths, URLs and MIME types, and search: typos, swaps, accents, word order and the short-word rule.
+256 tests — both byte conventions and their disagreement, localized sizes, numbers and percentages, round trips through every parser, multi-byte truncation, CSV read back by header, the ordinal teens, names in one case, avatar determinism and escaping, file kinds and content types from paths, URLs and MIME types, and search: typos, swaps, accents, word order and the short-word rule.
 
 ## License
 
